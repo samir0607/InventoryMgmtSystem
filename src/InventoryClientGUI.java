@@ -20,18 +20,18 @@ public class InventoryClientGUI {
 
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout(20, 20));
-        panel.setBackground(new Color(99, 151, 99));
+        panel.setBackground(new Color(93, 46, 72));
 
         JLabel titleLabel = new JLabel("Inventory Management System", JLabel.CENTER);
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        titleLabel.setForeground(new Color(23, 66, 23));
+        titleLabel.setForeground(new Color(255, 31, 31));
         panel.add(titleLabel, BorderLayout.NORTH);
 
         // Panel for buttons
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        buttonPanel.setBackground(new Color(99, 151, 99));
+        buttonPanel.setBackground(new Color(93, 46, 72));
 
         // Create buttons with rounded corners and dark green text
         JButton addCategoryButton = createStyledButton("Add Category");
@@ -66,9 +66,9 @@ public class InventoryClientGUI {
         table.setSelectionForeground(new Color(99, 151, 99));
 
         JTableHeader tableHeader = table.getTableHeader();
-        tableHeader.setBackground(new Color(49, 29, 63)); // Header background
-        tableHeader.setForeground(Color.WHITE);           // Header text color
-        tableHeader.setFont(new Font("Segoe UI", Font.BOLD, 16)); // Stylish header font
+        tableHeader.setBackground(new Color(54, 34, 64));
+        tableHeader.setForeground(Color.WHITE);
+        tableHeader.setFont(new Font("Segoe UI", Font.ITALIC, 14));
 
         JScrollPane tableScrollPane = new JScrollPane(table);
         panel.add(tableScrollPane, BorderLayout.CENTER);
@@ -132,12 +132,12 @@ public class InventoryClientGUI {
     private JButton createStyledButton(String text) {
         JButton button = new JButton(text);
         button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        button.setForeground(new Color(23, 66, 23));
-        button.setBackground(new Color(78, 126, 78));
+        button.setForeground(Color.pink);
+        button.setBackground(new Color(93, 46, 72));
         button.setSize(160, 70);
         button.setFocusPainted(false);
         button.setPreferredSize(new Dimension(160, 50));
-        button.setBorder(BorderFactory.createBevelBorder(2, new Color(221, 225, 77),new Color(221, 225, 0)));
+        button.setBorder(BorderFactory.createBevelBorder(2, new Color(129, 55, 79),new Color(221, 225, 0)));
 
         // Add rounded corners to the button
         button.setBorder(BorderFactory.createCompoundBorder(
@@ -149,15 +149,15 @@ public class InventoryClientGUI {
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                button.setBackground(new Color(221, 225, 77));
-                button.setForeground(new Color(76, 198, 76));
+                button.setBackground(new Color(129, 55, 79));
+                button.setForeground(Color.WHITE);
                 button.setOpaque(true);
                 button.setSize(165, 75);
             }
 
             @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                button.setForeground(new Color(23, 66, 23));
+                button.setForeground(Color.pink);
                 button.setOpaque(false);
                 button.setSize(160, 70);
             }
