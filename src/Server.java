@@ -1,3 +1,4 @@
+import java.sql.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -83,6 +84,7 @@ class Product {
 }
 
 public class Server {
+    private static Connection connection;
     private static final List<Category> categories = new CopyOnWriteArrayList<>();
     private static final List<Supplier> suppliers = new CopyOnWriteArrayList<>();
     private static final List<Product> products = new CopyOnWriteArrayList<>();
@@ -90,9 +92,34 @@ public class Server {
     private static final AtomicInteger nextSupplierId = new AtomicInteger(1);
     private static final AtomicInteger nextProductId = new AtomicInteger(1);
 
+    static {
+        try {
+            // Load the MySQL driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            // Establish connection to the database
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/inventory_db", "your_username", "your_pswd");
+            System.out.println("Database connection established successfully.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to connect to the database.");
+        }
+    }
+
     public static void main(String[] args) {
         try (ServerSocket serverSocket = new ServerSocket(6090)) {
             System.out.println("Server is running on port 6090...");
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    if (connection != null && !connection.isClosed()) {
+                        connection.close();
+                        System.out.println("Database connection closed.");
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }));
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
@@ -108,8 +135,7 @@ public class Server {
     private static void handleClient(Socket clientSocket) {
         try (
                 ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
-                ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream())
-        ) {
+                ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream())) {
             while (true) {
                 String request = (String) in.readObject();
 
@@ -152,16 +178,41 @@ public class Server {
     private static void addCategory(ObjectInputStream in, ObjectOutputStream out)
             throws IOException, ClassNotFoundException {
         String categoryName = (String) in.readObject();
-        categories.add(new Category(nextCategoryId.getAndIncrement(), categoryName));
-        out.writeObject("Category Added with ID: " + (nextCategoryId.get() - 1));
+        try (PreparedStatement stmt = connection.prepareStatement("INSERT INTO categories (name) VALUES (?)",
+                Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, categoryName);
+            stmt.executeUpdate();
+
+            ResultSet generatedKeys = stmt.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                int id = generatedKeys.getInt(1);
+                out.writeObject("Category Added with ID: " + id);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            out.writeObject("Error adding category.");
+        }
     }
 
     private static void addSupplier(ObjectInputStream in, ObjectOutputStream out)
             throws IOException, ClassNotFoundException {
         String supplierName = (String) in.readObject();
         String supplierContact = (String) in.readObject();
-        suppliers.add(new Supplier(nextSupplierId.getAndIncrement(), supplierName, supplierContact));
-        out.writeObject("Supplier Added with ID: " + (nextSupplierId.get() - 1));
+        try (PreparedStatement stmt = connection.prepareStatement("INSERT INTO suppliers (name, contact) VALUES (?, ?)",
+                Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, supplierName);
+            stmt.setString(2, supplierContact);
+            stmt.executeUpdate();
+
+            ResultSet generatedKeys = stmt.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                int id = generatedKeys.getInt(1);
+                out.writeObject("Supplier Added with ID: " + id);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            out.writeObject("Error adding supplier.");
+        }
     }
 
     private static void addProduct(ObjectInputStream in, ObjectOutputStream out)
@@ -171,49 +222,78 @@ public class Server {
         int supplierId = (Integer) in.readObject();
         double price = (Double) in.readObject();
 
-        if (isValidCategory(categoryId) && isValidSupplier(supplierId)) {
-            products.add(new Product(nextProductId.getAndIncrement(), productName, categoryId, supplierId, price));
-            out.writeObject("Product added successfully!");
-        } else {
-            out.writeObject("Invalid category or supplier ID.");
+        try (PreparedStatement stmt = connection
+                .prepareStatement("INSERT INTO products (name, category_id, supplier_id, price) VALUES (?, ?, ?, ?)")) {
+            stmt.setString(1, productName);
+            stmt.setInt(2, categoryId);
+            stmt.setInt(3, supplierId);
+            stmt.setDouble(4, price);
+
+            int rows = stmt.executeUpdate();
+            if (rows > 0) {
+                out.writeObject("Product added successfully!");
+            } else {
+                out.writeObject("Error adding product.");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            out.writeObject("Error adding product.");
         }
     }
 
-    private static void viewProducts(ObjectOutputStream out)
-            throws IOException {
-        Object[][] productData = products.stream()
-                .map(p -> new Object[]{
-                        p.getId(),
-                        p.getName(),
-                        p.getCategoryId(),
-                        p.getSupplierId(),
-                        p.getPrice()
-                })
-                .toArray(Object[][]::new);
-        out.writeObject(productData);
+    private static void viewProducts(ObjectOutputStream out) throws IOException {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT id, name, category_id, supplier_id, price FROM products")) {
+            List<Object[]> productData = new ArrayList<>();
+            while (rs.next()) {
+                productData.add(new Object[] {
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getInt("category_id"),
+                        rs.getInt("supplier_id"),
+                        rs.getDouble("price")
+                });
+            }
+            out.writeObject(productData.toArray(new Object[0][]));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            out.writeObject("Error retrieving products.");
+        }
     }
 
-    private static void viewCategories(ObjectOutputStream out)
-            throws IOException {
-        Object[][] categoryData = categories.stream()
-                .map(c -> new Object[]{
-                        c.getId(),
-                        c.getName()
-                })
-                .toArray(Object[][]::new);
-        out.writeObject(categoryData);
+    private static void viewCategories(ObjectOutputStream out) throws IOException {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT id, name FROM categories")) {
+            List<Object[]> categoryData = new ArrayList<>();
+            while (rs.next()) {
+                categoryData.add(new Object[] {
+                        rs.getInt("id"),
+                        rs.getString("name")
+                });
+            }
+            out.writeObject(categoryData.toArray(new Object[0][]));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            out.writeObject("Error retrieving categories.");
+        }
     }
 
-    private static void viewSuppliers(ObjectOutputStream out)
-            throws IOException {
-        Object[][] supplierData = suppliers.stream()
-                .map(s -> new Object[]{
-                        s.getId(),
-                        s.getName(),
-                        s.getContact()
-                })
-                .toArray(Object[][]::new);
-        out.writeObject(supplierData);
+    private static void viewSuppliers(ObjectOutputStream out) throws IOException {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT id, name, contact FROM suppliers")) {
+            List<Object[]> supplierData = new ArrayList<>();
+            while (rs.next()) {
+                supplierData.add(new Object[] {
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getString("contact")
+                });
+            }
+            out.writeObject(supplierData.toArray(new Object[0][]));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            out.writeObject("Error retrieving suppliers.");
+        }
     }
 
     private static boolean isValidCategory(int categoryId) {
