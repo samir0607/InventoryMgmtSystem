@@ -1,5 +1,6 @@
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.io.*;
 import java.net.Socket;
@@ -15,6 +16,7 @@ public class InventoryClientGUI {
         frame = new JFrame("Inventory Management System - Client");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(900, 700);
+
 
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout(20, 20));
@@ -62,6 +64,12 @@ public class InventoryClientGUI {
         table.setGridColor(new Color(122, 172, 122));
         table.setSelectionBackground(new Color(30, 81, 52));
         table.setSelectionForeground(new Color(99, 151, 99));
+
+        JTableHeader tableHeader = table.getTableHeader();
+        tableHeader.setBackground(new Color(49, 29, 63)); // Header background
+        tableHeader.setForeground(Color.WHITE);           // Header text color
+        tableHeader.setFont(new Font("Segoe UI", Font.BOLD, 16)); // Stylish header font
+
         JScrollPane tableScrollPane = new JScrollPane(table);
         panel.add(tableScrollPane, BorderLayout.CENTER);
 
