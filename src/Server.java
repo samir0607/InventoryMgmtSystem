@@ -98,7 +98,7 @@ public class Server {
             Class.forName("com.mysql.cj.jdbc.Driver");
 
             // Establish connection to the database
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/inventory_db", "your_username", "your_pswd");
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/inventory_db", "root", "MySQL@1234");
             System.out.println("Database connection established successfully.");
         } catch (Exception e) {
             e.printStackTrace();
