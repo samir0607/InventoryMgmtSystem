@@ -91,8 +91,8 @@ public class Server {
     private static final AtomicInteger nextProductId = new AtomicInteger(1);
 
     public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(12345)) {
-            System.out.println("Server is running on port 12345...");
+        try (ServerSocket serverSocket = new ServerSocket(6090)) {
+            System.out.println("Server is running on port 6090...");
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();

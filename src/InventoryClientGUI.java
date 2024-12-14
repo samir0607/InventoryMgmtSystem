@@ -10,7 +10,7 @@ public class InventoryClientGUI {
     private JTable table;
     private DefaultTableModel tableModel;
     private String serverAddress = "localhost";
-    private int serverPort = 12345;
+    private int serverPort = 6090;
 
     public InventoryClientGUI() {
         frame = new JFrame("Inventory Management System - Client");
