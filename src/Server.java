@@ -2,7 +2,7 @@ import java.sql.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class Category {
@@ -97,12 +97,62 @@ public class Server {
             // Load the MySQL driver
             Class.forName("com.mysql.cj.jdbc.Driver");
 
-            // Establish connection to the database
-            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/inventory_db", "root", "MySQL@1234");
+            // Establish connection to MySQL server
+            connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/", "root", "MySQL@1234");
             System.out.println("Database connection established successfully.");
+
+            // Ensure database and tables exist
+            setupDatabaseAndTables();
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Failed to connect to the database.");
+            throw new RuntimeException("Failed to set up the database.");
+        }
+    }
+
+    private static void setupDatabaseAndTables() throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            // Create database if it doesn't exist
+            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS inventory_db");
+            System.out.println("Database 'inventory_db' checked/created.");
+
+            // Switch to the new database
+            stmt.executeUpdate("USE inventory_db");
+
+            // Create categories table
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS categories (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL
+                )
+            """
+            );
+            System.out.println("Table 'categories' checked/created.");
+
+            // Create suppliers table
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS suppliers (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    contact VARCHAR(100)
+                )
+            """
+            );
+            System.out.println("Table 'suppliers' checked/created.");
+
+            // Create products table
+            stmt.executeUpdate("""
+                CREATE TABLE IF NOT EXISTS products (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(100) NOT NULL,
+                    category_id INT,
+                    supplier_id INT,
+                    price DECIMAL(10, 2),
+                    FOREIGN KEY (category_id) REFERENCES categories(id),
+                    FOREIGN KEY (supplier_id) REFERENCES suppliers(id)
+                )
+            """
+            );
+            System.out.println("Table 'products' checked/created.");
         }
     }
 
@@ -214,6 +264,7 @@ public class Server {
             out.writeObject("Error adding supplier.");
         }
     }
+
 
     private static void addProduct(ObjectInputStream in, ObjectOutputStream out)
             throws IOException, ClassNotFoundException {
